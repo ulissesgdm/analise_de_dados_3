@@ -1,0 +1,7 @@
+musica<-c("samba", "forro", "rock")
+str(musica)
+
+cantor<-c("zeca pagodinho", "santana", "cazuza")
+
+tabela<-data.frame(musica, cantor)
+str(tabela)
