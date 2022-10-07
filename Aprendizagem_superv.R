@@ -9,7 +9,7 @@ acidentes_21d <- acm.disjonctif(as.data.frame(acidentes_21$natureza_acidente))
 
 acidentes_21 <- cbind(acidentes_21, acidentes_21d)
 
-acidentes_21 <- rename(acidentes_21, fatal = acidentes_21$natureza_acidente.VÍTIMAFATAL)
+acidentes_21 <- rename(acidentes_21, fatal = acidentes_21$'natureza_acidente.VÍTIMAFATAL')
 
 # AED 
 status(acidentes_21) # explorar a qualidade das variáveis
@@ -20,7 +20,7 @@ profiling_num(acidentes_21) # estatísticas das variáveis numéricas
 corrplot(cor(acidentes_21[ , c(15,16,39:42)])) # correlação entre as variáveis
 
 # Treino e Teste: Pré-processamento
-particaoacidentes = createDataPartition(acidentes_21$fatal, p=.7, list = F) # cria a partição 70-30
+particaoacidentes = createDataPartition(acidentes_21$vitimasfatais, p=.7, list = F) # cria a partição 70-30
 treinoacidentes = acidentes_21[particaoacidentes, ] # treino
 testeacidentes = acidentes_21[-particaoacidentes, ] # - treino = teste
 
@@ -42,27 +42,22 @@ fancyRpartPlot(acidentes_RPART$finalModel) # desenho da árvore
 plot(varImp(acidentes_RPART)) # importância das variáveis
 
 # Bagging com Floresta Aleatória
-acidentes_RF <- train(fatal ~ tipo + auto + moto + ciclista + conservacao_via, data = treinoacidentes, method = "cforest", trControl = train.control)
+aidentes_RF <- train(vitimasfatais ~ tipo + auto + moto + ciclista + conservacao_via, data = treinoacidentes, method = "cforest", trControl = train.control)
 
 plot(acidentes_RF) # evolução do modelo
 plot(varImp(acidentes_RF)) # plot de importância
 
 
 # Boosting com Boosted Generalized Linear Model
-acidentes_ADA <- train(fatal ~ tipo + auto + moto + ciclista + conservacao_via, data = treinoacidentes, method = "glmboost", trControl = train.control)
+acidentes_ADA <- train(vitimasfatais ~ tipo + auto + moto + ciclista + conservacao_via, data = treinoacidentes, method = "glmboost", trControl = train.control)
 
-plot(ENEM_ADA) # evolução do modelo
-print(ENEM_ADA) # modelo
-summary(ENEM_ADA) # sumário
+plot(acidentes_ADA) # evolução do modelo
+print(acidentes_ADA) # modelo
+summary(acidentes_ADA) # sumário
 
-melhor_modelo <- resamples(list(LM = ENEM_LM, RPART = ENEM_RPART, RF = ENEM_RF, ADABOOST = ENEM_ADA))
-melhor_modelo
+# Toda vez que tento aplicar o modelos Bagging com Floresta aleatória e Boosting o R solicita que eu paixe o pacote party (mesmo ele já estando baixado)
 
-summary(melhor_modelo)
 
-predVals <- extractPrediction(list(ENEM_RF), testX = testeENEM[, c(8, 12:17)], testY = testeENEM$nota) 
-
-plotObsVsPred(predVals)
 
 
 
