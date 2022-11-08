@@ -3,6 +3,7 @@ library(fuzzyjoin)
 library(dplyr)
 library(tidyverse)
 library(tidyr)
+library(writexl)
 
 #Filtrando a base de dados do TSE para obter os dados correspondentes ao comparecimento no 1 e 2 turno para as eleições presidenciais
 
@@ -31,4 +32,14 @@ comparecimento <- left_join(comparecimento_1, comparecimento_2, by = c('nm_munic
 comparecimento_g <- comparecimento %>% filter(qt_aptos > 200000)
 
 comparecimento_g <- comparecimento_g %>% filter(qt_aptos_2 > 200000)
+
+
+#escrevi uma tabela para melhorar a leitura (corrigir posteriormente)
+
+write_csv2(comparecimento_g, 'comparecimento.csv')
+
+comparecimento_g <- fuzzyjoin::stringdist_join(comparecimento_tratado, passe_livre, by = c('nm_municipio' = 'nome_cid'), mode='left')
+
+
+
 
