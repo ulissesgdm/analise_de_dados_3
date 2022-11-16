@@ -17,7 +17,7 @@ comparecimento_2 <- read.csv2("https://github.com/ulissesgdm/trabalho_final/raw/
 comparecimento_2 <- select (comparecimento_2, sg_uf,nm_municipio, pc_secoes_agregadas, pc_comparecimento, pc_abstencoes, qt_aptos, qt_comparecimento, qt_abstencoes)
 
 #corrigir esse modelo
-passe_livre <- read.csv2("https://github.com/ulissesgdm/trabalho_final/blob/main/passe_livre.csv.csv", stringsAsFactors = T, sep = ";")
+passe_livre <- read.csv2("https://raw.githubusercontent.com/ulissesgdm/trabalho_final/main/passe_livre.csv", stringsAsFactors = T, sep = ";")
 
 #renomeando as colunas do segundo turno para diferencia-las quando houver a união das duas bases
 
