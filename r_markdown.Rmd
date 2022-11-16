@@ -1,0 +1,41 @@
+---
+title: "Análise USArrests"
+author: "Ulisses Melo"
+date: "2022-11-16"
+output: html_document
+---
+
+  
+```{r setup, include=FALSE}
+# carregar as bibliotecas
+pacman::p_load(cluster, ggplot2, plotly)
+
+# pré-processamento
+violencia_cluster <- USArrests %>% select(Murder, Rape)
+str(violencia_cluster)
+
+# setar semente aleatória
+set.seed(1)
+
+# Agrupamento com kmeans
+cls <- kmeans(x = violencia_cluster, centers = 5) # aprendizagem ns
+violencia_cluster$cluster <- as.factor(cls$cluster) # passamos os clusters para a base original
+head(violencia_cluster)
+```
+
+# Agrupamento dos dados 'Iris'
+## K-means
+
+Abaixo, você encontra o agrupamento da base de dados USArrests, usando a técnica de k-means.
+
+```{r iriscluster, echo=FALSE, warning=FALSE, message=FALSE}
+grafico1 <- ggplot() +
+  geom_point(data = violencia_cluster, mapping = aes(x = Murder, y = Rape, colour = cluster)) + 
+  geom_point(mapping = aes_string(x = cls$centers[ , "Murder"], y = cls$centers[ , "Rape"]), color = "red", size = 4) +
+  geom_text(mapping = aes_string(x = cls$centers[ , "Murder"], y = cls$centers[ , "Rape"], label = 1:5), color = "white", size = 2) +
+  theme_light()
+ggplotly(grafico1)
+```
+
+
+
