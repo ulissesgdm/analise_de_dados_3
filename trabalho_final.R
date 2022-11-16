@@ -8,15 +8,15 @@ library(ggplot2)
 
 #Filtrando a base de dados do TSE para obter os dados correspondentes ao comparecimento no 1 e 2 turno para as eleições presidenciais
 
-comparecimento_1 <- read.csv2("https://github.com/ulissesgdm/trabalho_final/raw/main/comparecimento-votacao-munic%C3%ADpio_2022_1_turno.csv", stringsAsFactors = T, sep = ";") %>% filter(ds_cargo == "Presidente")
+comparecimento_1 <- read.csv2("https://github.com/ulissesgdm/trabalho_final/raw/main/comparecimento-votacao-munic%C3%ADpio_2022_1_turno.csv", stringsAsFactors = T, sep = ";", encoding = "latin1") %>% filter(ds_cargo == "Presidente")
   
 comparecimento_1 <- select (comparecimento_1, sg_uf,nm_municipio, pc_secoes_agregadas, pc_comparecimento, pc_abstencoes, qt_aptos, qt_comparecimento, qt_abstencoes)
 
-comparecimento_2 <- read.csv2("https://github.com/ulissesgdm/trabalho_final/raw/main/comparecimento-votacao-munic%C3%ADpio_2022_2_turno.csv", stringsAsFactors = T, sep = ";") %>% filter(ds_cargo == "Presidente")
+comparecimento_2 <- read.csv2("https://github.com/ulissesgdm/trabalho_final/raw/main/comparecimento-votacao-munic%C3%ADpio_2022_2_turno.csv", stringsAsFactors = T, sep = ";", encoding = "latin1") %>% filter(ds_cargo == "Presidente")
 
 comparecimento_2 <- select (comparecimento_2, sg_uf,nm_municipio, pc_secoes_agregadas, pc_comparecimento, pc_abstencoes, qt_aptos, qt_comparecimento, qt_abstencoes)
 
-#corrigir esse modelo
+#Dados sobre a aplicação do passe livre
 passe_livre <- read.csv2("https://raw.githubusercontent.com/ulissesgdm/trabalho_final/main/passe_livre.csv", stringsAsFactors = T, sep = ";")
 
 #renomeando as colunas do segundo turno para diferencia-las quando houver a união das duas bases
@@ -38,13 +38,11 @@ comparecimento_g <- comparecimento %>% filter(qt_aptos > 200000)
 comparecimento_g <- comparecimento_g %>% filter(qt_aptos_2 > 200000)
 
 
-#escrevi uma tabela para melhorar a leitura (corrigir posteriormente)
-
-write_csv2(comparecimento_g, 'comparecimento.csv')
-
 # unindo as bases de dados do passe livre e comparecimento
 
-comparecimento_g <- fuzzyjoin::stringdist_join(comparecimento_tratado, passe_livre, by = c('nm_municipio' = 'nome_cid'), mode='left')
+comparecimento_g <- fuzzyjoin::stringdist_join(comparecimento_g, passe_livre, by = c('nm_municipio' = 'nome_cid'), mode='left')
+
+# Criando variável que compara o comparecimento no 1 e segundo turno, valores negativos indicam maior comparecimento no 2 turno.
 
 comparecimento_g <- comparecimento_g %>%
   mutate(dif_turnos = (pc_comparecimento - pc_comparecimento_2))
@@ -91,24 +89,24 @@ muda_pl_comparecimento_2 <- comparecimento_g %>%
 #média com duas categorias primeiro turno
 
 control <- comparecimento_g %>%
-  filter(aply_pl == 0) %>%
+  filter(tratamento == 0) %>%
   select(pc_comparecimento) %>%
   summarise_all(mean)
 
 tratament <- comparecimento_g %>%
-  filter(aply_pl == 1) %>%
+  filter(tratamento == 1) %>%
   select(pc_comparecimento) %>%
   summarise_all(mean)
 
 #médoa com duas categorias segundo turno
 
 control_2 <- comparecimento_g %>%
-  filter(aply_pl == 0) %>%
+  filter(tratamento == 0) %>%
   select(pc_comparecimento_2) %>%
   summarise_all(mean)
 
 tratament_2 <- comparecimento_g %>%
-  filter(aply_pl == 1) %>%
+  filter(tratamento == 1) %>%
   select(pc_comparecimento_2) %>%
   summarise_all(mean)
 
