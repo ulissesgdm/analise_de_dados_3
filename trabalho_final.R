@@ -206,17 +206,19 @@ comparecimento_r <- bind_rows(comparecimento_1, comparecimento_2)
 
 
 
-# Criando variável que compara o comparecimento no 1 e segundo turno, valores negativos indicam maior comparecimento no 2 turno.
+# Retirando valores ausentes
 
-comparecimento_g <- comparecimento_g %>%
-  mutate(dif_turnos = (pc_comparecimento - pc_comparecimento_2))
+comparecimento_r <- na.omit(comparecimento_r)
+
 
 
 #Regressão
 
-comparecimento_r$interacao <- comparecimento_r$turno*comparecimento_g$tratamento
+comparecimento_r$interacao <- comparecimento_r$turno*comparecimento_r$tratamento
 
-reg <- lm(pc_comparecimento ~ qt_aptos, regiao, uf, data = comparecimento_r )
+comparecimento_r$tratamento <- as.factor(comparecimento_r$tratamento)
+
+reg <- lm(pc_comparecimento ~ tratamento + qt_aptos +interacao + turno + regiao , data = comparecimento_r )
 summary(reg)
 
 
