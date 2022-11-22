@@ -218,7 +218,7 @@ comparecimento_r$interacao <- comparecimento_r$turno*comparecimento_r$tratamento
 
 comparecimento_r$tratamento <- as.factor(comparecimento_r$tratamento)
 
-reg <- lm(pc_comparecimento ~ tratamento + qt_aptos +interacao + turno + regiao , data = comparecimento_r )
+reg <- lm(pc_comparecimento ~ tratamento + qt_aptos +interacao + turno + uf , data = comparecimento_r )
 summary(reg)
 
 
