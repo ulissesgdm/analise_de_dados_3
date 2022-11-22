@@ -1,4 +1,3 @@
-install.packages('fuzzyjoin')
 library(fuzzyjoin)
 library(dplyr)
 library(tidyverse)
@@ -9,12 +8,22 @@ library(ggplot2)
 #Filtrando a base de dados do TSE para obter os dados correspondentes ao comparecimento no 1 e 2 turno para as eleições presidenciais
 
 comparecimento_1 <- read.csv2("https://github.com/ulissesgdm/trabalho_final/raw/main/comparecimento-votacao-munic%C3%ADpio_2022_1_turno.csv", stringsAsFactors = T, sep = ";", encoding = "latin1") %>% filter(ds_cargo == "Presidente")
-  
+
 comparecimento_1 <- select (comparecimento_1, sg_uf,nm_municipio, pc_secoes_agregadas, pc_comparecimento, pc_abstencoes, qt_aptos, qt_comparecimento, qt_abstencoes)
+
+#criar variável turno
+
+comparecimento_1$turno <- sample(1:1, 5751, replace = T)
+
+#Dados 2 turno
 
 comparecimento_2 <- read.csv2("https://github.com/ulissesgdm/trabalho_final/raw/main/comparecimento-votacao-munic%C3%ADpio_2022_2_turno.csv", stringsAsFactors = T, sep = ";", encoding = "latin1") %>% filter(ds_cargo == "Presidente")
 
 comparecimento_2 <- select (comparecimento_2, sg_uf,nm_municipio, pc_secoes_agregadas, pc_comparecimento, pc_abstencoes, qt_aptos, qt_comparecimento, qt_abstencoes)
+
+#Criar variável turno
+
+comparecimento_2$turno <- sample(2:2, 5751, replace = T)
 
 #Dados sobre a aplicação do passe livre
 passe_livre <- read.csv2("https://raw.githubusercontent.com/ulissesgdm/trabalho_final/main/passe_livre.csv", stringsAsFactors = T, sep = ";")
@@ -149,15 +158,65 @@ p
 
 
 
-#REGRESSÃO
 
-comparecimento_g$interacao <- comparecimento_g$pl_1_turno*comparecimento_g$pl_2_turno
+#Tratamento de dados para a regressão
 
-reg <- lm( dif_turnos ~ aply_pl , data = comparecimento_g )
-summary(reg)
+#Dados sobre a aplicação do passe livre
+passe_livre_r <- read.csv2("https://raw.githubusercontent.com/ulissesgdm/trabalho_final/main/passe_livre_r.csv", stringsAsFactors = T, sep = ";")
+
+#Filtrando a base de dados do TSE para obter os dados correspondentes ao comparecimento no 1 e 2 turno para as eleições presidenciais
+
+comparecimento_1 <- read.csv2("https://github.com/ulissesgdm/trabalho_final/raw/main/comparecimento-votacao-munic%C3%ADpio_2022_1_turno.csv", stringsAsFactors = T, sep = ";", encoding = "latin1") %>% filter(ds_cargo == "Presidente")
+
+comparecimento_1 <- select (comparecimento_1, sg_uf,nm_municipio, pc_secoes_agregadas, pc_comparecimento, pc_abstencoes, qt_aptos, qt_comparecimento, qt_abstencoes)
+
+comparecimento_1 <- comparecimento_1 %>% filter(qt_aptos > 200000)
+
+#criar variável turno
+
+comparecimento_1$turno <- sample(1:1, 97, replace = T)
+
+#adicionar a variável de tratamento
+
+comparecimento_1 <- fuzzyjoin::stringdist_join(comparecimento_1, passe_livre_r, by = c('nm_municipio' = 'nome_cid'), mode='left')
 
 
-reg <- lm(pc_comparecimento_2 ~ aply_pl + , data = comparecimento_g )
+
+#Dados 2 turno
+
+comparecimento_2 <- read.csv2("https://github.com/ulissesgdm/trabalho_final/raw/main/comparecimento-votacao-munic%C3%ADpio_2022_2_turno.csv", stringsAsFactors = T, sep = ";", encoding = "latin1") %>% filter(ds_cargo == "Presidente")
+
+comparecimento_2 <- select (comparecimento_2, sg_uf,nm_municipio, pc_secoes_agregadas, pc_comparecimento, pc_abstencoes, qt_aptos, qt_comparecimento, qt_abstencoes)
+
+comparecimento_2 <- comparecimento_2 %>% filter(qt_aptos > 200000)
+
+#criar variável turno
+
+comparecimento_2$turno <- sample(2:2, 97, replace = T)
+
+#adicionar a variável de tratamento
+
+comparecimento_2 <- fuzzyjoin::stringdist_join(comparecimento_2, passe_livre_r, by = c('nm_municipio' = 'nome_cid'), mode='left')
+
+
+
+#Unir verticalmente as bases de dados do 1 e 2 turno
+
+comparecimento_r <- bind_rows(comparecimento_1, comparecimento_2)
+
+
+
+# Criando variável que compara o comparecimento no 1 e segundo turno, valores negativos indicam maior comparecimento no 2 turno.
+
+comparecimento_g <- comparecimento_g %>%
+  mutate(dif_turnos = (pc_comparecimento - pc_comparecimento_2))
+
+
+#Regressão
+
+comparecimento_r$interacao <- comparecimento_r$turno*comparecimento_g$tratamento
+
+reg <- lm(pc_comparecimento ~ qt_aptos, regiao, uf, data = comparecimento_r )
 summary(reg)
 
 
