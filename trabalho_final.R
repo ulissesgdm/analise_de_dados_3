@@ -5,6 +5,8 @@ library(tidyr)
 library(writexl)
 library(ggplot2)
 
+
+
 #Filtrando a base de dados do TSE para obter os dados correspondentes ao comparecimento no 1 e 2 turno para as eleições presidenciais
 
 comparecimento_1 <- read.csv2("https://github.com/ulissesgdm/trabalho_final/raw/main/comparecimento-votacao-munic%C3%ADpio_2022_1_turno.csv", stringsAsFactors = T, sep = ";", encoding = "latin1") %>% filter(ds_cargo == "Presidente")
@@ -162,7 +164,10 @@ p
 #Tratamento de dados para a regressão
 
 #Dados sobre a aplicação do passe livre
-passe_livre_r <- read.csv2("https://raw.githubusercontent.com/ulissesgdm/trabalho_final/main/passe_livre_r.csv", stringsAsFactors = T, sep = ";")
+passe_livre_1 <- read.csv2("https://raw.githubusercontent.com/ulissesgdm/trabalho_final/main/passe_livre_1.csv", stringsAsFactors = T, sep = ";")
+
+passe_livre_2 <- read.csv2("https://raw.githubusercontent.com/ulissesgdm/trabalho_final/main/passe_livre_2.csv", stringsAsFactors = T, sep = ";")
+
 
 #Filtrando a base de dados do TSE para obter os dados correspondentes ao comparecimento no 1 e 2 turno para as eleições presidenciais
 
@@ -178,7 +183,7 @@ comparecimento_1$turno <- sample(1:1, 97, replace = T)
 
 #adicionar a variável de tratamento
 
-comparecimento_1 <- fuzzyjoin::stringdist_join(comparecimento_1, passe_livre_r, by = c('nm_municipio' = 'nome_cid'), mode='left')
+comparecimento_1 <- fuzzyjoin::stringdist_join(comparecimento_1, passe_livre_1, by = c('nm_municipio' = 'nome_cid'), mode='left')
 
 
 
@@ -196,7 +201,7 @@ comparecimento_2$turno <- sample(2:2, 97, replace = T)
 
 #adicionar a variável de tratamento
 
-comparecimento_2 <- fuzzyjoin::stringdist_join(comparecimento_2, passe_livre_r, by = c('nm_municipio' = 'nome_cid'), mode='left')
+comparecimento_2 <- fuzzyjoin::stringdist_join(comparecimento_2, passe_livre_1, by = c('nm_municipio' = 'nome_cid'), mode='left')
 
 
 
@@ -214,11 +219,11 @@ comparecimento_r <- na.omit(comparecimento_r)
 
 #Regressão
 
-comparecimento_r$interacao <- comparecimento_r$turno*comparecimento_r$tratamento
+comparecimento_r$interacao <- comparecimento_r$turno*comparecimento_r$passe_livre
 
 comparecimento_r$tratamento <- as.factor(comparecimento_r$tratamento)
 
-reg <- lm(pc_comparecimento ~ tratamento + qt_aptos +interacao + turno + uf , data = comparecimento_r )
+reg <- lm(pc_comparecimento ~ passe_livre + qt_aptos +interacao + turno + uf , data = comparecimento_r )
 summary(reg)
 
 
