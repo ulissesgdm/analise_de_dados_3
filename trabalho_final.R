@@ -221,8 +221,6 @@ comparecimento_r <- na.omit(comparecimento_r)
 
 comparecimento_r$interacao <- comparecimento_r$turno*comparecimento_r$passe_livre
 
-comparecimento_r$tratamento <- as.factor(comparecimento_r$tratamento)
-
 reg <- lm(pc_comparecimento ~ passe_livre + qt_aptos +interacao + turno + uf , data = comparecimento_r )
 summary(reg)
 
