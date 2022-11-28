@@ -1,0 +1,258 @@
+---
+title: "Política de Transporte Público Gratuito (PasseLivre) nas eleições de 2022"
+author: "Anderson B. Paz; Larissa Melo; Ulisses Matheus Melo"
+date: "`r format(Sys.time(), '%d-%m-%Y')`"
+output: 
+  html_document:
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r echo=FALSE, results='hide'}
+library(fuzzyjoin)
+library(dplyr)
+library(tidyverse)
+library(tidyr)
+library(writexl)
+library(ggplot2)
+library(stargazer)
+library(jtools)
+
+```
+
+# Filtrando a base de dados do Tribunal Superior Eleitoral -TSE para obter os dados correspondentes ao comparecimento no 1º e 2º turno para as eleições presidenciais
+
+```{r, results='asis'}
+# Carregando a base do 1º turno
+
+comparecimento_1 <- read.csv2("https://github.com/ulissesgdm/trabalho_final/raw/main/comparecimento-votacao-munic%C3%ADpio_2022_1_turno.csv", stringsAsFactors = T, sep = ";", encoding = "latin1") %>% filter(ds_cargo == "Presidente")
+
+comparecimento_1 <- select (comparecimento_1, sg_uf,nm_municipio, pc_secoes_agregadas, pc_comparecimento, pc_abstencoes, qt_aptos, qt_comparecimento, qt_abstencoes)
+
+# Criando variável do 1º turno
+
+comparecimento_1$turno <- sample(1:1, 5751, replace = T)
+
+# Carregando a base do 2º turno
+
+comparecimento_2 <- read.csv2("https://github.com/ulissesgdm/trabalho_final/raw/main/comparecimento-votacao-munic%C3%ADpio_2022_2_turno.csv", stringsAsFactors = T, sep = ";", encoding = "latin1") %>% filter(ds_cargo == "Presidente")
+
+comparecimento_2 <- select (comparecimento_2, sg_uf,nm_municipio, pc_secoes_agregadas, pc_comparecimento, pc_abstencoes, qt_aptos, qt_comparecimento, qt_abstencoes)
+
+# Criando variável do 2º turno
+
+comparecimento_2$turno <- sample(2:2, 5751, replace = T)
+
+```
+
+# Base de dados sobre a aplicação do "Passe Livre", elaboradas através de dados das reportagens do IDEC, nos municípios com mais de 300 mil habitantes
+
+```{r, results='asis'}
+# Carregando base sobre a aplicação do passe livre
+
+passe_livre <- read.csv2("https://raw.githubusercontent.com/ulissesgdm/trabalho_final/main/passe_livre.csv", stringsAsFactors = T, sep = ";")
+
+# Renomeando as colunas do 2º turno para diferenciá-las quando houver a união das duas bases
+
+comparecimento_2 <- rename(comparecimento_2, pc_secoes_agregadas_2 = pc_secoes_agregadas,
+                           pc_comparecimento_2 = pc_comparecimento,
+                           pc_abstencoes_2 = pc_abstencoes,
+                           qt_aptos_2 = qt_aptos,
+                           qt_comparecimento_2 = qt_comparecimento,
+                           qt_abstencoes_2 = qt_abstencoes)
+
+# Unindo as duas bases a partir dos municípios
+
+comparecimento <- left_join(comparecimento_1, comparecimento_2, by = c('nm_municipio' = 'nm_municipio'))
+
+comparecimento_g <- comparecimento %>% filter(qt_aptos > 200000)
+
+comparecimento_g <- comparecimento_g %>% filter(qt_aptos_2 > 200000)
+
+# Unindo as bases de dados do passe livre e comparecimento
+
+comparecimento_g <- fuzzyjoin::stringdist_join(comparecimento_g, passe_livre, by = c('nm_municipio' = 'nome_cid'), mode='left')
+
+# Criando variável que compara o comparecimento no 1º e 2º turno, valores negativos indicam maior comparecimento no 2º turno.
+
+comparecimento_g <- comparecimento_g %>%
+  mutate(dif_turnos = (pc_comparecimento - pc_comparecimento_2))
+
+write_csv2(comparecimento_g, 'comparecimento_pl.csv')
+
+```
+
+# Filtragem para o Dif e Dif
+
+```{r, results='asis'}
+
+# Média de comparecimento nas três categorias no 1º turno
+
+pl_comparecimento_1 <- comparecimento_g %>%
+  filter(pl_1_turno == 1 & pl_2_turno == 1) %>%
+  select(pc_comparecimento) %>%
+  summarise_all(mean)
+
+sem_pl_comparecimento_1 <- comparecimento_g %>%
+  filter(pl_1_turno == 0 & pl_2_turno == 0)%>%
+  select(pc_comparecimento) %>%
+  summarise_all(mean)
+
+muda_pl_comparecimento_1 <- comparecimento_g %>%
+  filter(pl_1_turno == 0 & pl_2_turno == 1)%>%
+  select(pc_comparecimento) %>%
+  summarise_all(mean)
+
+# Média de comparecimento das três categorias no 2º turno
+
+
+pl_comparecimento_2 <- comparecimento_g %>%
+  filter(pl_1_turno == 1 & pl_2_turno == 1) %>%
+  select(pc_comparecimento_2) %>%
+  summarise_all(mean)
+
+sem_pl_comparecimento_2 <- comparecimento_g %>%
+  filter(pl_1_turno == 0 & pl_2_turno == 0)%>%
+  select(pc_comparecimento_2) %>%
+  summarise_all(mean)
+
+muda_pl_comparecimento_2 <- comparecimento_g %>%
+  filter(pl_1_turno == 0 & pl_2_turno == 1)%>%
+  select(pc_comparecimento_2) %>%
+  summarise_all(mean)
+
+# Média com duas categorias 1º turno
+
+control <- comparecimento_g %>%
+  filter(tratamento == 0) %>%
+  select(pc_comparecimento) %>%
+  summarise_all(mean)
+
+tratament <- comparecimento_g %>%
+  filter(tratamento == 1) %>%
+  select(pc_comparecimento) %>%
+  summarise_all(mean)
+
+# Média com duas categorias 2º turno
+
+control_2 <- comparecimento_g %>%
+  filter(tratamento == 0) %>%
+  select(pc_comparecimento_2) %>%
+  summarise_all(mean)
+
+tratament_2 <- comparecimento_g %>%
+  filter(tratamento == 1) %>%
+  select(pc_comparecimento_2) %>%
+  summarise_all(mean)
+
+```
+
+# Diagramas
+
+```{r, results='asis'}
+
+# Três variáveis
+
+diagrama <- data.frame(
+  Time=factor(c("1º tuno", "2º turno")),
+  Control1 =c(pl_comparecimento_1$pc_comparecimento, pl_comparecimento_2$pc_comparecimento_2),
+  Control2 =c(sem_pl_comparecimento_1$pc_comparecimento, sem_pl_comparecimento_2$pc_comparecimento_2),
+  Treatment=c(muda_pl_comparecimento_1$pc_comparecimento, muda_pl_comparecimento_2$pc_comparecimento_2)
+)
+diagrama
+
+
+p<-ggplot(data=diagrama)+
+  geom_point(aes(x=reorder(Time,desc(Time)), y=Control1),colour="red")+
+  geom_point(aes(x=reorder(Time,desc(Time)), y=Control2),colour="black")+
+  geom_point(aes(x=reorder(Time,desc(Time)), y=Treatment),colour="blue")+
+  ylab("Comparecimento")
+p
+
+# Diagrama com duas variáveis (dummie)
+
+diagrama <- data.frame(
+  Time=factor(c("1º tuno", "2º turno")),
+  Control =c(control$pc_comparecimento,control_2$pc_comparecimento_2),
+  Treatment=c(tratament$pc_comparecimento, tratament_2$pc_comparecimento_2)
+)
+diagrama
+
+
+p<-ggplot(data=diagrama)+
+  geom_point(aes(x=reorder(Time,desc(Time)), y= Control),colour="red")+
+  geom_point(aes(x=reorder(Time,desc(Time)), y=Treatment),colour="blue")+
+  ylab("Comparecimento")
+p
+
+```
+
+# Tratamento de dados para a regressão
+
+```{r, results='asis'}
+
+# Carregando dados sobre a aplicação do passe livre
+
+passe_livre_1 <- read.csv2("https://raw.githubusercontent.com/ulissesgdm/trabalho_final/main/passe_livre_1.csv", stringsAsFactors = T, sep = ";")
+
+passe_livre_2 <- read.csv2("https://raw.githubusercontent.com/ulissesgdm/trabalho_final/main/passe_livre_2.csv", stringsAsFactors = T, sep = ";")
+
+```
+
+```{r, results='asis'}
+
+# Dados 1º turno
+
+comparecimento_1 <- read.csv2("https://github.com/ulissesgdm/trabalho_final/raw/main/comparecimento-votacao-munic%C3%ADpio_2022_1_turno.csv", stringsAsFactors = T, sep = ";", encoding = "latin1") %>% filter(ds_cargo == "Presidente")
+
+comparecimento_1 <- select (comparecimento_1, sg_uf,nm_municipio, pc_secoes_agregadas, pc_comparecimento, pc_abstencoes, qt_aptos, qt_comparecimento, qt_abstencoes)
+
+comparecimento_1 <- comparecimento_1 %>% filter(qt_aptos > 200000)
+
+# Criando variável 1º turno
+
+comparecimento_1$turno <- sample(1:1, 97, replace = T)
+
+# Adicionando a variável de tratamento
+
+comparecimento_1 <- fuzzyjoin::stringdist_join(comparecimento_1, passe_livre_1, by = c('nm_municipio' = 'nome_cid'), mode='left')
+
+# Dados 2º turno
+
+comparecimento_2 <- read.csv2("https://github.com/ulissesgdm/trabalho_final/raw/main/comparecimento-votacao-munic%C3%ADpio_2022_2_turno.csv", stringsAsFactors = T, sep = ";", encoding = "latin1") %>% filter(ds_cargo == "Presidente")
+
+comparecimento_2 <- select (comparecimento_2, sg_uf,nm_municipio, pc_secoes_agregadas, pc_comparecimento, pc_abstencoes, qt_aptos, qt_comparecimento, qt_abstencoes)
+
+comparecimento_2 <- comparecimento_2 %>% filter(qt_aptos > 200000)
+
+# Criando variável 2º turno
+
+comparecimento_2$turno <- sample(2:2, 97, replace = T)
+
+# Adicionando a variável de tratamento
+
+comparecimento_2 <- fuzzyjoin::stringdist_join(comparecimento_2, passe_livre_1, by = c('nm_municipio' = 'nome_cid'), mode='left')
+
+# Unindo verticalmente as bases de dados do 1º e 2º turno
+
+comparecimento_r <- bind_rows(comparecimento_1, comparecimento_2)
+
+# Retirando valores ausentes
+
+comparecimento_r <- na.omit(comparecimento_r)
+
+```
+
+# Modelo de Regressão
+
+```{r, warning=F, message=F, fig.align='center'}
+
+comparecimento_r$interacao <- comparecimento_r$turno*comparecimento_r$passe_livre
+
+reg <- lm(pc_comparecimento ~ passe_livre + qt_aptos + interacao + turno + uf , data = comparecimento_r )
+
+summ(reg, confint = TRUE)
+```
