@@ -67,7 +67,6 @@ comparecimento_g <- fuzzyjoin::stringdist_join(comparecimento_g, passe_livre, by
 comparecimento_g <- comparecimento_g %>%
   mutate(dif_turnos = (pc_comparecimento - pc_comparecimento_2))
 
-write_csv2(comparecimento_g, 'comparecimento_pl.csv')
 
 #filtragem para o dif e dif
 
@@ -169,7 +168,6 @@ p
 
 
 
-
 #Tratamento de dados para a regressão
 
 #Dados sobre a aplicação do passe livre
@@ -182,13 +180,10 @@ passe_livre_2 <- read.csv2("https://raw.githubusercontent.com/ulissesgdm/trabalh
 
 comparecimento_1 <- read.csv2("https://github.com/ulissesgdm/trabalho_final/raw/main/comparecimento-votacao-munic%C3%ADpio_2022_1_turno.csv", stringsAsFactors = T, sep = ";", encoding = "latin1") %>% filter(ds_cargo == "Presidente")
 
-comparecimento_1 <- select (comparecimento_1, sg_uf,nm_municipio, pc_secoes_agregadas, pc_comparecimento, pc_abstencoes, qt_aptos, qt_comparecimento, qt_abstencoes)
+comparecimento_1 <- select (comparecimento_1, sg_uf,nm_municipio, nr_turno, pc_secoes_agregadas, pc_comparecimento, pc_abstencoes, qt_aptos, qt_comparecimento, qt_abstencoes)
 
 comparecimento_1 <- comparecimento_1 %>% filter(qt_aptos > 200000)
 
-#criar variável turno
-
-comparecimento_1$turno <- sample(1:1, 97, replace = T)
 
 #adicionar a variável de tratamento
 
@@ -200,13 +195,10 @@ comparecimento_1 <- fuzzyjoin::stringdist_join(comparecimento_1, passe_livre_1, 
 
 comparecimento_2 <- read.csv2("https://github.com/ulissesgdm/trabalho_final/raw/main/comparecimento-votacao-munic%C3%ADpio_2022_2_turno.csv", stringsAsFactors = T, sep = ";", encoding = "latin1") %>% filter(ds_cargo == "Presidente")
 
-comparecimento_2 <- select (comparecimento_2, sg_uf,nm_municipio, pc_secoes_agregadas, pc_comparecimento, pc_abstencoes, qt_aptos, qt_comparecimento, qt_abstencoes)
+comparecimento_2 <- select (comparecimento_2, nr_turno, sg_uf,nm_municipio, pc_secoes_agregadas, pc_comparecimento, pc_abstencoes, qt_aptos, qt_comparecimento, qt_abstencoes)
 
 comparecimento_2 <- comparecimento_2 %>% filter(qt_aptos > 200000)
 
-#criar variável turno
-
-comparecimento_2$turno <- sample(2:2, 97, replace = T)
 
 #adicionar a variável de tratamento
 
@@ -224,13 +216,13 @@ comparecimento_r <- bind_rows(comparecimento_1, comparecimento_2)
 
 comparecimento_r <- na.omit(comparecimento_r)
 
-
+corrplot(cor(comparecimento_r[3:9]), method = "circle", type = "lower", diag = TRUE)
 
 #Regressão
 
-comparecimento_r$interacao <- comparecimento_r$turno*comparecimento_r$passe_livre
+comparecimento_r$interacao <- comparecimento_r$nr_turno*comparecimento_r$passe_livre
 
-reg <- lm(pc_comparecimento ~ passe_livre + qt_aptos +interacao + turno + uf , data = comparecimento_r )
+reg <- lm(pc_comparecimento ~ passe_livre + qt_aptos +interacao + nr_turno + uf , data = comparecimento_r )
 summary(reg)
 
 
