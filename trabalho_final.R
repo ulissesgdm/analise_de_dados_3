@@ -219,6 +219,10 @@ comparecimento_r <- na.omit(comparecimento_r)
 corrplot(cor(comparecimento_r[3:11]), method = "circle", type = "lower", diag = TRUE)
 
 
+#Adicionando variável de interação
+
+comparecimento_r$interacao <- comparecimento_r$nr_turno*comparecimento_r$passe_livre
+
 
 #Testes e Treino
 
