@@ -12,50 +12,55 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r echo=FALSE, results='hide'}
-library(fuzzyjoin)
-library(dplyr)
-library(tidyverse)
-library(tidyr)
-library(writexl)
-library(ggplot2)
-library(stargazer)
-library(jtools)
+pacman::p_load(caret, tidyverse, fuzzyjoin, dplyr, ggplot2, corrplot, forcats, funModeling, ggplot2, mlbench, mltools, randomForest, rattle, haven, ade4, car, mboost) 
 
 ```
 
-# Filtrando a base de dados do Tribunal Superior Eleitoral -TSE para obter os dados correspondentes ao comparecimento no 1º e 2º turno para as eleições presidenciais
+# Carregando as bases de dados, Análises Exploratória dos dois turnos e Filtrando a base de dados do Tribunal Superior Eleitoral -TSE para obter os dados correspondentes ao comparecimento no 1º e 2º turno para as eleições presidenciais e 
 
-```{r, results='asis'}
-# Carregando a base do 1º turno
+```{r, warning=F, message=F, fig.align='center'}
+
+# Download base de dados 1º turno
 
 comparecimento_1 <- read.csv2("https://github.com/ulissesgdm/trabalho_final/raw/main/comparecimento-votacao-munic%C3%ADpio_2022_1_turno.csv", stringsAsFactors = T, sep = ";", encoding = "latin1") %>% filter(ds_cargo == "Presidente")
 
-comparecimento_1 <- select (comparecimento_1, sg_uf,nm_municipio, pc_secoes_agregadas, pc_comparecimento, pc_abstencoes, qt_aptos, qt_comparecimento, qt_abstencoes)
+# Exploração dos dados do 1º turno
 
-# Criando variável do 1º turno
+glimpse(comparecimento_1) # olhada nos dados
+status(comparecimento_1) # estrutura dos dados (missing etc)
+freq(comparecimento_1) # frequência das variáveis fator
+plot_num(comparecimento_1) # exploração das variáveis numéricas
+profiling_num(comparecimento_1) # estatísticas das variáveis numéricas
 
-comparecimento_1$turno <- sample(1:1, 5751, replace = T)
+# Filtrando a base de dados do TSE para obter os dados correspondentes ao comparecimento no 1º e 2º turno para as eleições presidenciais
 
-# Carregando a base do 2º turno
+comparecimento_1 <- select (comparecimento_1, nr_turno, pc_total_votos_nulos, pc_votos_brancos, sg_uf,nm_municipio, pc_secoes_agregadas, pc_comparecimento, pc_abstencoes, qt_aptos, qt_comparecimento, qt_abstencoes)
+
+# Dados 2º turno
 
 comparecimento_2 <- read.csv2("https://github.com/ulissesgdm/trabalho_final/raw/main/comparecimento-votacao-munic%C3%ADpio_2022_2_turno.csv", stringsAsFactors = T, sep = ";", encoding = "latin1") %>% filter(ds_cargo == "Presidente")
 
-comparecimento_2 <- select (comparecimento_2, sg_uf,nm_municipio, pc_secoes_agregadas, pc_comparecimento, pc_abstencoes, qt_aptos, qt_comparecimento, qt_abstencoes)
+# Explorando os dados do 2º turno
 
-# Criando variável do 2º turno
+glimpse(comparecimento_2) # olhada nos dados
+status(comparecimento_2) # estrutura dos dados (missing etc)
+freq(comparecimento_2) # frequência das variáveis fator
+plot_num(comparecimento_2) # exploração das variáveis numéricas
+profiling_num(comparecimento_2) # estatísticas das variáveis numéricas
 
-comparecimento_2$turno <- sample(2:2, 5751, replace = T)
+# Filtrando e selecionando dados do 2º turno
+
+comparecimento_2 <- select (comparecimento_2, nr_turno, pc_total_votos_nulos, pc_votos_brancos, sg_uf,nm_municipio, pc_secoes_agregadas, pc_comparecimento, pc_abstencoes, qt_aptos, qt_comparecimento, qt_abstencoes)
 
 ```
 
 # Base de dados sobre a aplicação do "Passe Livre", elaboradas através de dados das reportagens do IDEC, nos municípios com mais de 300 mil habitantes
 
-```{r, results='asis'}
-# Carregando base sobre a aplicação do passe livre
-
+```{r, warning=F, message=F, fig.align='center'}
+# Dados sobre a aplicação do passe livre
 passe_livre <- read.csv2("https://raw.githubusercontent.com/ulissesgdm/trabalho_final/main/passe_livre.csv", stringsAsFactors = T, sep = ";")
 
-# Renomeando as colunas do 2º turno para diferenciá-las quando houver a união das duas bases
+# Renomeando as colunas do segundo turno para diferencia-las quando houver a união das duas bases
 
 comparecimento_2 <- rename(comparecimento_2, pc_secoes_agregadas_2 = pc_secoes_agregadas,
                            pc_comparecimento_2 = pc_comparecimento,
@@ -64,12 +69,11 @@ comparecimento_2 <- rename(comparecimento_2, pc_secoes_agregadas_2 = pc_secoes_a
                            qt_comparecimento_2 = qt_comparecimento,
                            qt_abstencoes_2 = qt_abstencoes)
 
+
 # Unindo as duas bases a partir dos municípios
 
 comparecimento <- left_join(comparecimento_1, comparecimento_2, by = c('nm_municipio' = 'nm_municipio'))
-
 comparecimento_g <- comparecimento %>% filter(qt_aptos > 200000)
-
 comparecimento_g <- comparecimento_g %>% filter(qt_aptos_2 > 200000)
 
 # Unindo as bases de dados do passe livre e comparecimento
@@ -81,13 +85,11 @@ comparecimento_g <- fuzzyjoin::stringdist_join(comparecimento_g, passe_livre, by
 comparecimento_g <- comparecimento_g %>%
   mutate(dif_turnos = (pc_comparecimento - pc_comparecimento_2))
 
-write_csv2(comparecimento_g, 'comparecimento_pl.csv')
-
 ```
 
 # Filtragem para o Dif e Dif
 
-```{r, results='asis'}
+```{r, warning=F, message=F, fig.align='center'}
 
 # Média de comparecimento nas três categorias no 1º turno
 
@@ -107,7 +109,6 @@ muda_pl_comparecimento_1 <- comparecimento_g %>%
   summarise_all(mean)
 
 # Média de comparecimento das três categorias no 2º turno
-
 
 pl_comparecimento_2 <- comparecimento_g %>%
   filter(pl_1_turno == 1 & pl_2_turno == 1) %>%
@@ -152,7 +153,7 @@ tratament_2 <- comparecimento_g %>%
 
 # Diagramas
 
-```{r, results='asis'}
+```{r, warning=F, message=F, fig.align='center'}
 
 # Três variáveis
 
@@ -192,7 +193,7 @@ p
 
 # Tratamento de dados para a regressão
 
-```{r, results='asis'}
+```{r, warning=F, message=F, fig.align='center'}
 
 # Carregando dados sobre a aplicação do passe livre
 
@@ -202,19 +203,15 @@ passe_livre_2 <- read.csv2("https://raw.githubusercontent.com/ulissesgdm/trabalh
 
 ```
 
-```{r, results='asis'}
+```{r, warning=F, message=F, fig.align='center'}
 
 # Dados 1º turno
 
 comparecimento_1 <- read.csv2("https://github.com/ulissesgdm/trabalho_final/raw/main/comparecimento-votacao-munic%C3%ADpio_2022_1_turno.csv", stringsAsFactors = T, sep = ";", encoding = "latin1") %>% filter(ds_cargo == "Presidente")
 
-comparecimento_1 <- select (comparecimento_1, sg_uf,nm_municipio, pc_secoes_agregadas, pc_comparecimento, pc_abstencoes, qt_aptos, qt_comparecimento, qt_abstencoes)
+comparecimento_1 <- select (comparecimento_1, sg_uf,nm_municipio, nr_turno, pc_total_votos_nulos, pc_votos_brancos, pc_secoes_agregadas, pc_comparecimento, pc_abstencoes, qt_aptos, qt_comparecimento, qt_abstencoes)
 
 comparecimento_1 <- comparecimento_1 %>% filter(qt_aptos > 200000)
-
-# Criando variável 1º turno
-
-comparecimento_1$turno <- sample(1:1, 97, replace = T)
 
 # Adicionando a variável de tratamento
 
@@ -224,13 +221,9 @@ comparecimento_1 <- fuzzyjoin::stringdist_join(comparecimento_1, passe_livre_1, 
 
 comparecimento_2 <- read.csv2("https://github.com/ulissesgdm/trabalho_final/raw/main/comparecimento-votacao-munic%C3%ADpio_2022_2_turno.csv", stringsAsFactors = T, sep = ";", encoding = "latin1") %>% filter(ds_cargo == "Presidente")
 
-comparecimento_2 <- select (comparecimento_2, sg_uf,nm_municipio, pc_secoes_agregadas, pc_comparecimento, pc_abstencoes, qt_aptos, qt_comparecimento, qt_abstencoes)
+comparecimento_2 <- select (comparecimento_2, nr_turno, sg_uf,nm_municipio, pc_total_votos_nulos, pc_votos_brancos, pc_secoes_agregadas, pc_comparecimento, pc_abstencoes, qt_aptos, qt_comparecimento, qt_abstencoes)
 
 comparecimento_2 <- comparecimento_2 %>% filter(qt_aptos > 200000)
-
-# Criando variável 2º turno
-
-comparecimento_2$turno <- sample(2:2, 97, replace = T)
 
 # Adicionando a variável de tratamento
 
@@ -244,15 +237,66 @@ comparecimento_r <- bind_rows(comparecimento_1, comparecimento_2)
 
 comparecimento_r <- na.omit(comparecimento_r)
 
+corrplot(cor(comparecimento_r[3:11]), method = "circle", type = "lower", diag = TRUE)
+
+
+# Adicionando variável de interação
+
+comparecimento_r$interacao <- comparecimento_r$nr_turno*comparecimento_r$passe_livre
+
 ```
 
-# Modelo de Regressão
+# Testes e Treino
 
 ```{r, warning=F, message=F, fig.align='center'}
 
-comparecimento_r$interacao <- comparecimento_r$turno*comparecimento_r$passe_livre
+# Treino e Teste: Pré-processamento
+particao = createDataPartition(comparecimento_r$pc_comparecimento, p=.7, list = F) # cria a partição 70-30
+treinocomparecimento = comparecimento_r[particao, ] # treino
+testecomparecimento = comparecimento_r[-particao, ] # - treino = teste
 
-reg <- lm(pc_comparecimento ~ passe_livre + qt_aptos + interacao + turno + uf , data = comparecimento_r )
+# Validação Cruzada: Pré-processamento
+# Controle de treinamento
+train.control <- trainControl(method = "cv", number = 10, verboseIter = T) # controle de treino
 
-summ(reg, confint = TRUE)
+## Regressão Linear
+reg_LM <- train(pc_comparecimento ~ passe_livre + qt_aptos + pc_total_votos_nulos + pc_votos_brancos + interacao + nr_turno + uf , data = comparecimento_r, method = "lm", trControl = train.control)
+summary(reg_LM) # sumário do modelo linear
+plot(varImp(reg_LM))
+
+# Bagging com Floresta Aleatória
+comp_RF <- train(pc_comparecimento ~ passe_livre + qt_aptos + pc_total_votos_nulos + pc_votos_brancos + interacao + nr_turno + uf , data = comparecimento_r, method = "cforest", trControl = train.control)
+
+plot(comp_RF) # evolução do modelo
+plot(varImp(comp_RF)) # plot de importância
+
+## Árvore de Decisão
+comp_RPART <- train(pc_comparecimento ~ passe_livre + qt_aptos + pc_total_votos_nulos + pc_votos_brancos + interacao + nr_turno + uf , data = comparecimento_r, method = "rpart", trControl = train.control)
+
+summary(comp_RPART)
+fancyRpartPlot(comp_RPART$finalModel) # desenho da árvore
+plot(varImp(comp_RPART)) # importância das variáveis
+
+# Boosting com Boosted Generalized Linear Model
+comp_ADA <- train(pc_comparecimento ~ passe_livre + qt_aptos + pc_total_votos_nulos + pc_votos_brancos + interacao + nr_turno + uf , data = comparecimento_r, method = "glmboost", trControl = train.control)
+
+plot(comp_ADA) # evolução do modelo
+print(comp_ADA) # modelo
+summary(comp_ADA) # sumário
+plot(varImp(comp_ADA)) # importância das variáveis
+
 ```
+
+# Melhor modelo
+
+```{r, warning=F, message=F, fig.align='center'}
+
+melhor_modelo <- resamples(list(LM = reg_LM, RPART = comp_RPART, RF = comp_RF, ADABOOST = comp_ADA))
+melhor_modelo
+summary(melhor_modelo)
+
+```
+
+## Não aplicamos a predição pois as variáveis categoricas não estavam sendo reconhecidas. Sendo assim, aplicamos a base completa nos modelos de treino. Restou claro que o melhor modelo para verificar os efeitos das variáveis independentes sobre o comparecimento foi a regressão linear, nela foi possível observar o papel preponderante de alguns estados, bem como correlação significativa entre os percentuais de voto nulo e branco e o comparecimento.
+
+## Por fim, não foi verificado, em nenhum dos testes, importância significativa da aplicação da política de passe-livre nessas cidades. De fato, fatores ligados às campanhas locais ou mesmo o voto em determinados candidatos podem apresentar respostas mais substanciais sobre a pergunta de pesquisa.
